@@ -1,0 +1,120 @@
+﻿<html>
+<head>
+    <script src="~/Scripts/jquery-1.10.2.js"></script>
+    <script src="~/Scripts/jquery-1.10.2.min.js"></script>
+
+    <style type="text/css">
+        .vidcontainer {
+            border: 2px solid #0094ff;
+        }
+        .canvas-item {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div>My Video</div>
+    <div>
+        <video height="300" width="400" id="vid1" class="vidcontainer">
+
+        </video>
+        <br/>
+        <button class="btn btn-primary" id="btncapture">Take Photo</button>
+        <br/>
+        <br/>
+        <canvas id="canv1" height="300" width="400" class="canvas-item"></canvas>
+        <img id="photo"/>
+        <br/>
+        <br/>
+        <button id="btncheckimage" class="btn btn-success">Check Image Emotion</button>
+        <br/>
+        <br/>
+        <br/>
+        <label>Enter your name:</label>
+        <input id="txtname" type="text" class="form-control"/>
+        <br/>
+        <button id="btnRegisterImage" class="btn btn-success">Register Picture</button> <button id="btnIdentify" class="btn btn-success">Identify</button>
+    </div>
+    <script type="text/javascript">
+        (function () {
+            var video = document.getElementById('vid1'),
+                canvas = document.getElementById('canv1'),
+                context = canvas.getContext('2d'),
+                vendoUrl = window.URL || window.webkitURL;
+
+            var photo = $('#photo');
+
+            navigator.getMedia = navigator.getUserMedia || navigator.webkitGetUserMedia
+                || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+
+            navigator.getMedia({
+                video: true,
+                audio: false
+            }, function (stream) {
+                video.src = vendoUrl.createObjectURL(stream);
+                video.play();
+            }, function (error) {
+            });
+
+            $('#btncapture').click(function () {
+                context.drawImage(video, 0, 0, 400, 300);
+                photo.attr('src', canvas.toDataURL('image/png'));
+            });
+
+            $('#btncheckimage').click(function () {
+                var image = canvas.toDataURL('image/png');
+                console.log(image);
+                image = image.replace('data:image/png;base64,', '');
+                console.log(image);
+
+                $.ajax({
+                    url: '@Url.Action(controllerName: "Home", actionName: "SaveImage")',
+                    data: JSON.stringify({ imageData: image }),
+                    contentType: 'application/json; charset=utf-8',
+                    type: 'post',
+                    success: function (item) {
+                        alert('Emotion: ' + item.Emotion);
+                    }
+                })
+            });
+
+            $('#btnRegisterImage').click(function () {
+                var personname = $('#txtname').val();
+                var image = canvas.toDataURL('image/png');
+
+                if (personname.length == 0) { alert("Please identify the person's name"); }
+                image = image.replace('data:image/png;base64,', '');
+
+                $.ajax({
+                    url: '@Url.Action(controllerName: "Home", actionName: "RegisterImage")',
+                    data: JSON.stringify({ personName: personname, imageData: image }),
+                    type: 'post',
+                    contentType: 'application/json charset=utf-8',
+                    success: function (item) {
+                        if (item.Saved) {
+                            alert('Image saved');
+                        }
+                    }
+                })
+            });
+
+            $('#btnIdentify').click(function () {
+                var image = canvas.toDataURL('image/png');
+                image = image.replace('data:image/png;base64,', '');
+
+                $.ajax({
+                    url: '@Url.Action(controllerName: "Home", actionName: "IdentifyImage")',
+                    data: JSON.stringify({ imageData: image }),
+                    type: 'post',
+                    contentType: 'application/json charset=utf-8',
+                    success: function (item) {
+                        if (item.ImageName.length > 0) {
+                            alert(item.ImageName);
+                        }
+                    }
+                })
+            });
+        })();
+    </script>
+</body>
+</html>
