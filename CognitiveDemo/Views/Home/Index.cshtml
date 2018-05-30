@@ -15,9 +15,9 @@
 <body>
     <div>My Video</div>
     <div>
-        <video height="300" width="400" id="vid1" class="vidcontainer">
-
-        </video>
+        <div id="video-container">
+            <video height="300" width="400" id="vid1" class="vidcontainer"></video>
+        </div>
         <br/>
         <button class="btn btn-primary" id="btncapture">Take Photo</button>
         <br/>
@@ -53,8 +53,133 @@
             }, function (stream) {
                 video.src = vendoUrl.createObjectURL(stream);
                 video.play();
+
+                hasface();
             }, function (error) {
             });
+
+            var hasface = function () {
+                console.log('checking face');
+                context.drawImage(video, 0, 0, 400, 300);
+                var image = canvas.toDataURL('image/png');
+                image = image.replace('data:image/png;base64,', '');
+
+                $.ajax({
+                    url: '@Url.Action(controllerName: "Home", actionName: "CheckHasFace")',
+                    data: JSON.stringify({ imageData: image }),
+                    type: 'post',
+                    contentType: 'application/json charset=utf-8',
+                    success: function (result) {
+                        console.log('face checked.');
+                        if (result.HasFace) {
+                            //setInterval(getFaceRect, 1000);
+                            startCounter();
+                        }
+                        else {
+                            hasface();
+                        }
+                    },
+                    error: function (error) {
+                        return false;
+                    }
+                })
+            }
+
+            var startCounter = function () {
+                var label = $('<label />');
+                label.css('font-size', '48px');
+                label.css('font-weight', 'bold');
+                label.css('color', '#fff');
+                label.css('top', '24px');
+                label.css('left', '24px');
+                label.css('position', 'absolute');
+                label.css('display', 'none');
+                var cnt = 5;
+
+                var vidcontainer = $('#video-container');
+                vidcontainer.css('position', 'relative');
+                vidcontainer.append(label);
+
+                var counterInterval = setInterval(function () {
+                    vidcontainer.find('label').text(cnt);
+                    vidcontainer.find('label').fadeIn(100);
+                    vidcontainer.find('label').fadeOut(500);
+                    cnt--;
+                    if (cnt == 0) { 
+                        clearInterval(counterInterval);
+                        $('#btncapture').click();
+                        $('#btncheckimage').click();
+                    }
+                }, 1000);
+                    
+            }
+
+            var getFaceRect = function () {
+                context.drawImage(video, 0, 0, 400, 300);
+                var image = canvas.toDataURL('image/png');
+                image = image.replace('data:image/png;base64,', '');
+
+                $.ajax({
+                    url: '@Url.Action(actionName: "GetRectangle", controllerName: "Home")',
+                    data: JSON.stringify({ imageData: image }),
+                    type: 'post',
+                    contentType: 'application/json charset=utf-8',
+                    success: function (facerect) {                        
+                        var vidcontainer = $('#video-container');
+                        var facebox = vidcontainer.find('#facerect');
+                        var span = vidcontainer.find('span');
+
+                        if (facebox == undefined || facebox == null || facebox.length == 0) {
+                            var rect = $('<div/>');
+                            rect.attr('id', 'facerect')
+                            vidcontainer.append(rect);
+                        }
+
+                        if (span == undefined || span == null || span.length == 0) {
+                            var sp = $('<span />');
+                            vidcontainer.append(sp);
+                        }
+
+                        console.log('locate face');
+                        if (facerect.length > 0) {
+
+                            //$.each(facerect, function (indx, obj) {
+                                var obj = facerect[0];
+                                var facebox = vidcontainer.find('#facerect');
+                                var span = vidcontainer.find('span');
+
+                                if (facebox != undefined && facebox != null) {
+                                    facebox.css('border', '2px solid #fff');
+                                    facebox.css('top', obj.Top);
+                                    facebox.css('left', obj.Left);
+                                    facebox.css('width', obj.Width);
+                                    facebox.css('height', obj.Height);
+                                    facebox.css('position', 'absolute');
+                                    facebox.css('display', 'inline-block');
+                                    vidcontainer.css('position', 'relative');
+
+
+                                    span.html('Age:' + obj.Age + ' Emotion:' + obj.Emotion);
+                                    span.css('font-size', '10px');
+                                    span.css('background-color', 'white');
+                                    span.css('height', '11px');
+                                    span.css('top', obj.Top - 11);
+                                    span.css('left', obj.Left);
+                                    span.css('position', 'absolute');
+                                    span.css('display', 'inline-block');
+                                }
+                            //});
+                        }
+                        else {
+                            facebox = vidcontainer.find('#facerect');
+                            facebox.css('display', 'none');
+
+                            span = vidcontainer.find('span');
+                            span.css('display', 'none');
+                        }
+                    }
+                })
+            }
 
             $('#btncapture').click(function () {
                 context.drawImage(video, 0, 0, 400, 300);

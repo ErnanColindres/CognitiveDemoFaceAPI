@@ -1,4 +1,5 @@
-﻿using CognitiveDemo.Utilities;
+﻿using CognitiveDemo.Models;
+using CognitiveDemo.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -100,7 +101,7 @@ namespace CognitiveDemo.Controllers
 
             try
             {
-                string fileNameWitPath = path + "_" + DateTime.Now.ToString("ddMMyyyyHHmmss") + ".png";
+                string fileNameWitPath = path + DateTime.Now.ToString("ddMMyyyyHHmmss") + ".png";
 
                 if (!System.IO.File.Exists(fileNameWitPath))
                 {
@@ -123,6 +124,73 @@ namespace CognitiveDemo.Controllers
             }
             return Json(new { ImageName = imagename }, JsonRequestBehavior.AllowGet);
 
+        }
+
+        [HttpPost]
+        public async Task<JsonResult> GetRectangle(string imageData)
+        {
+            var path = @"C:\ScannedDocs\";
+            var facerectinfo = new List<FaceRectangleInfo>();
+
+            try
+            {
+                string fileNameWitPath = path + DateTime.Now.ToString("ddMMyyyyHHmmss") + ".png";
+
+                if (!System.IO.File.Exists(fileNameWitPath))
+                {
+                    using (FileStream fs = new FileStream(fileNameWitPath, FileMode.Create))
+                    {
+                        using (BinaryWriter bw = new BinaryWriter(fs))
+                        {
+                            byte[] data = Convert.FromBase64String(imageData);
+                            bw.Write(data);
+                            bw.Close();
+                        }
+                    }
+                }
+
+                facerectinfo = await new FaceAPIUtility().GetFaceRectangle(fileNameWitPath);
+                System.IO.File.Delete(fileNameWitPath);
+            }
+            catch (Exception e)
+            {
+
+            }
+            return Json(facerectinfo, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        public async Task<JsonResult> CheckHasFace(string imageData)
+        {
+            var path = @"C:\ScannedDocs\";
+            var hasface = false;
+
+            try
+            {
+                string fileNameWitPath = path + DateTime.Now.ToString("ddMMyyyyHHmmss") + ".png";
+
+                if (!System.IO.File.Exists(fileNameWitPath))
+                {
+                    using (FileStream fs = new FileStream(fileNameWitPath, FileMode.Create))
+                    {
+                        using (BinaryWriter bw = new BinaryWriter(fs))
+                        {
+                            byte[] data = Convert.FromBase64String(imageData);
+                            bw.Write(data);
+                            bw.Close();
+                        }
+                    }
+                }
+
+                hasface = await new FaceAPIUtility().HasFace(fileNameWitPath);
+                System.IO.File.Delete(fileNameWitPath);
+            }
+            catch (Exception e)
+            {
+
+            }
+            return Json(new { HasFace = hasface }, JsonRequestBehavior.AllowGet);
+            
         }
     }
 }

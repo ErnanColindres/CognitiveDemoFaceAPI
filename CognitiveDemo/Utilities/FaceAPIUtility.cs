@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using CognitiveDemo.Models;
 using Microsoft.ProjectOxford.Face;
 using Microsoft.ProjectOxford.Face.Contract;
 
@@ -120,6 +121,64 @@ namespace CognitiveDemo.Utilities
             catch (Exception ex)
             {
                 return new Face[0];
+            }
+        }
+
+        public async Task<List<FaceRectangleInfo>> GetFaceRectangle(string imagePath)
+        {
+            try
+            {
+                using (Stream imageFileStream = File.OpenRead(imagePath))
+                {
+                    var faces = await fsClient.DetectAsync(imageFileStream, true, true, new FaceAttributeType[] {
+                            FaceAttributeType.Gender,
+                            FaceAttributeType.Age,
+                            FaceAttributeType.Emotion
+                    });
+
+                    var results = new List<FaceRectangleInfo>();                    
+
+                    foreach (var face in faces)
+                    {
+                        var result = new FaceRectangleInfo();
+                        result.Age = (int)face.FaceAttributes.Age;
+                        result.Emotion = face.FaceAttributes.Emotion.ToRankedList().OrderByDescending(e => e.Value).Select(e => e.Key).FirstOrDefault();
+                        result.Gender = face.FaceAttributes.Gender;
+                        result.Left = face.FaceRectangle.Left;
+                        result.Top = face.FaceRectangle.Top;
+                        result.Width = face.FaceRectangle.Width;
+                        result.Height = face.FaceRectangle.Height;
+
+                        results.Add(result);
+                    }
+
+                    return results;
+                }
+            }
+            catch (Exception e)
+            { 
+                return null;
+            }
+        }
+
+        public async Task<bool> HasFace(string imagePath)
+        {
+            try
+            {
+                using (Stream imageFileStream = File.OpenRead(imagePath))
+                {
+                    var faces = await fsClient.DetectAsync(imageFileStream, true, true, new FaceAttributeType[] {
+                            FaceAttributeType.Gender,
+                            FaceAttributeType.Age,
+                            FaceAttributeType.Emotion
+                    });
+
+                    return faces.Count() > 0;
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
     }
